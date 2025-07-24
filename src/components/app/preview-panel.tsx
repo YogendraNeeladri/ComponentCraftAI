@@ -29,9 +29,9 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
   const srcDoc = `
     <html>
       <head>
-        <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -107,34 +107,43 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
   };
 
   const handleDownload = () => {
-    const componentNameToUse = getComponentName(tsxCode) || 'Component';
-    
-    // Create a blob for the TSX file
-    const tsxBlob = new Blob([tsxCode], { type: 'text/typescript-jsx' });
-    const tsxUrl = URL.createObjectURL(tsxBlob);
-    const tsxLink = document.createElement('a');
-    tsxLink.href = tsxUrl;
-    tsxLink.download = `${componentNameToUse}.tsx`;
-    document.body.appendChild(tsxLink);
-    tsxLink.click();
-    document.body.removeChild(tsxLink);
-    URL.revokeObjectURL(tsxUrl);
-    
-    // Create a blob for the CSS file
-    const cssBlob = new Blob([cssCode], { type: 'text/css' });
-    const cssUrl = URL.createObjectURL(cssBlob);
-    const cssLink = document.createElement('a');
-    cssLink.href = cssUrl;
-    cssLink.download = `${componentNameToUse}.css`;
-    document.body.appendChild(cssLink);
-    cssLink.click();
-    document.body.removeChild(cssLink);
-    URL.revokeObjectURL(cssUrl);
+    try {
+      const componentNameToUse = getComponentName(tsxCode) || 'Component';
+      
+      // Create a blob for the TSX file
+      const tsxBlob = new Blob([tsxCode], { type: 'text/typescript-jsx' });
+      const tsxUrl = URL.createObjectURL(tsxBlob);
+      const tsxLink = document.createElement('a');
+      tsxLink.href = tsxUrl;
+      tsxLink.download = `${componentNameToUse}.tsx`;
+      document.body.appendChild(tsxLink);
+      tsxLink.click();
+      document.body.removeChild(tsxLink);
+      URL.revokeObjectURL(tsxUrl);
+      
+      // Create a blob for the CSS file
+      const cssBlob = new Blob([cssCode], { type: 'text/css' });
+      const cssUrl = URL.createObjectURL(cssBlob);
+      const cssLink = document.createElement('a');
+      cssLink.href = cssUrl;
+      cssLink.download = `${componentNameToUse}.css`;
+      document.body.appendChild(cssLink);
+      cssLink.click();
+      document.body.removeChild(cssLink);
+      URL.revokeObjectURL(cssUrl);
 
-    toast({
-      title: 'Download Started',
-      description: `Downloading ${componentNameToUse}.tsx and ${componentNameToUse}.css`,
-    });
+      toast({
+        title: 'Download Started',
+        description: `Downloading ${componentNameToUse}.tsx and ${componentNameToUse}.css`,
+      });
+    } catch (error) {
+        console.error("Download Error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Download Failed',
+            description: 'Could not download files.',
+        });
+    }
   };
 
   React.useEffect(() => {
@@ -149,11 +158,11 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
            <Button variant="ghost" size="icon" onClick={() => setIframeKey(Date.now())}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={handleCopy}>
+          <Button variant="outline" size="lg" onClick={handleCopy}>
             <Copy className="h-4 w-4 mr-2" />
             Copy Code
           </Button>
-          <Button onClick={handleDownload}>
+          <Button size="lg" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
@@ -164,7 +173,7 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
           key={iframeKey}
           srcDoc={srcDoc}
           title="Component Preview"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-same-origin"
           className="w-full h-full border-0"
         />
       </CardContent>
