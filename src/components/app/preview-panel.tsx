@@ -149,11 +149,11 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
            <Button variant="ghost" size="icon" onClick={() => setIframeKey(Date.now())}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy}>
+          <Button variant="outline" onClick={handleCopy}>
             <Copy className="h-4 w-4 mr-2" />
             Copy Code
           </Button>
-          <Button size="sm" onClick={handleDownload}>
+          <Button onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
