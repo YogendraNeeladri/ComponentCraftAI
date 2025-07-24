@@ -122,5 +122,5 @@ Evaluation Checklist (Self-Marked)
 📬 Contact
 Made by [Neeladri Yogendra]
 📧 Email: yogiyadav1970@email.com
-🌐 Portfolio: yourportfolio.dev
+🌐 Portfolio: https://yogendraneeladriportfolio.netlify.app/
 
