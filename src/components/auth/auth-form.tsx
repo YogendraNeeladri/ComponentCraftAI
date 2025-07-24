@@ -24,6 +24,14 @@ import {
 } from '@/components/ui/card';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { auth } from '@/lib/firebase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -42,6 +50,8 @@ interface AuthFormProps {
 
 export default function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(mode === 'login' ? loginSchema : signupSchema),
@@ -52,15 +62,30 @@ export default function AuthForm({ mode }: AuthFormProps) {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema | typeof signupSchema>) => {
+  const onSubmit = async (values: z.infer<typeof loginSchema | typeof signupSchema>) => {
     setIsLoading(true);
-    console.log(values);
-    // Mock API call
-    setTimeout(() => {
+    try {
+      if (mode === 'signup') {
+        const signupValues = values as z.infer<typeof signupSchema>;
+        const userCredential = await createUserWithEmailAndPassword(auth, signupValues.email, signupValues.password);
+        await updateProfile(userCredential.user, { displayName: signupValues.name });
+        toast({ title: 'Success', description: 'Account created successfully!' });
+      } else {
+        const loginValues = values as z.infer<typeof loginSchema>;
+        await signInWithEmailAndPassword(auth, loginValues.email, loginValues.password);
+        toast({ title: 'Success', description: 'Logged in successfully!' });
+      }
+      router.push('/');
+    } catch (error: any) {
+      console.error('Authentication Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    } finally {
       setIsLoading(false);
-      // On success, you would redirect the user.
-      // For now, we just log to console.
-    }, 2000);
+    }
   };
   
   const isLogin = mode === 'login';

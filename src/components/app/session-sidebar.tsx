@@ -15,6 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Blocks, LogOut, Plus, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 const sessions = [
   { id: 1, name: 'E-commerce Card' },
@@ -27,6 +31,14 @@ interface SessionSidebarProps {
 }
 
 export default function SessionSidebar({ onNewSession }: SessionSidebarProps) {
+  const [user] = useAuthState(auth);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
   return (
     <>
       <SidebarHeader>
@@ -69,21 +81,25 @@ export default function SessionSidebar({ onNewSession }: SessionSidebarProps) {
       <SidebarSeparator />
 
       <SidebarFooter>
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/40x40" alt="User" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">User Name</p>
-            <p className="text-xs text-muted-foreground truncate">user@example.com</p>
-          </div>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/login">
+        {user ? (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+              <AvatarFallback>{user.displayName?.charAt(0).toUpperCase() ?? 'U'}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold truncate">{user.displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut />
-            </Link>
+            </Button>
+          </div>
+        ) : (
+          <Button asChild>
+            <Link href="/login">Log In</Link>
           </Button>
-        </div>
+        )}
       </SidebarFooter>
     </>
   );

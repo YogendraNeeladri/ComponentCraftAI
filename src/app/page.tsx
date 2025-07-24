@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -19,9 +20,12 @@ import {
   refineComponentCode,
 } from '@/ai/flows/refine-component-code';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from '@/lib/firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { Loader2 } from 'lucide-react';
 
 export type GeneratedCode = {
-  jsx: string;
+  tsx: string;
   css: string;
 };
 
@@ -118,11 +122,19 @@ export default WelcomePlaceholder;
 };
 
 export default function Home() {
+  const [user, loading] = useAuthState(auth);
+  const router = useRouter();
   const [chatHistory, setChatHistory] = React.useState<ChatMessage[]>([]);
   const [generatedCode, setGeneratedCode] =
     React.useState<GeneratedCode>(initialCode);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   const handleNewSession = () => {
     setChatHistory([]);
@@ -174,6 +186,14 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
