@@ -68,7 +68,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
       if (mode === 'signup') {
         const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(auth, signupValues.email, signupValues.password);
-        await updateProfile(userCredential.user, { displayName: signupValues.name });
+        if (auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: signupValues.name });
+        }
         toast({ title: 'Success', description: 'Account created successfully!' });
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;
@@ -78,10 +80,23 @@ export default function AuthForm({ mode }: AuthFormProps) {
       router.push('/');
     } catch (error: any) {
       console.error('Authentication Error:', error);
+      const errorCode = error.code;
+      let errorMessage = error.message;
+
+      if (errorCode === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already in use. Please use a different email or log in.';
+      } else if (errorCode === 'auth/weak-password') {
+        errorMessage = 'The password is too weak. Please choose a stronger password.';
+      } else if (errorCode === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else {
+        errorMessage = 'An unexpected error occurred during authentication. Please try again later.';
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Authentication Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
