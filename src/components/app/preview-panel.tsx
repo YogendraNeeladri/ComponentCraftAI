@@ -14,8 +14,11 @@ const getComponentName = (code: string): string => {
   if (match) return match[1];
   const defaultExportMatch = code.match(/export\s+default\s+([A-Z]\w*);/);
   if (defaultExportMatch) return defaultExportMatch[1];
+  const functionMatch = code.match(/function\s+([A-Z]\w*)\s*\(/);
+  if (functionMatch) return functionMatch[1];
   return 'Component';
 };
+
 
 export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
   const { toast } = useToast();
@@ -80,20 +83,63 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
           } catch(e) {
             console.error(e);
             const container = document.getElementById('root');
-            container.innerHTML = '<div style="color: red; text-align: center;">Error rendering component. Check console.</div>';
+            container.innerHTML = '<div style="color: red; text-align: center;">Error rendering component: ' + e.message + '</div>';
           }
         </script>
       </body>
     </html>
   `;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(`${tsxCode}\n\n<style>\n${cssCode}\n</style>`);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${tsxCode}\n\n<style>\n${cssCode}\n</style>`);
+      toast({
+        title: 'Code Copied!',
+        description: 'TSX and CSS have been copied to your clipboard.',
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Copy Failed',
+        description: 'Could not copy code to clipboard.',
+      });
+    }
+  };
+
+  const handleDownload = () => {
+    const componentNameToUse = getComponentName(tsxCode) || 'Component';
+    
+    // Create a blob for the TSX file
+    const tsxBlob = new Blob([tsxCode], { type: 'text/typescript-jsx' });
+    const tsxUrl = URL.createObjectURL(tsxBlob);
+    const tsxLink = document.createElement('a');
+    tsxLink.href = tsxUrl;
+    tsxLink.download = `${componentNameToUse}.tsx`;
+    document.body.appendChild(tsxLink);
+    tsxLink.click();
+    document.body.removeChild(tsxLink);
+    URL.revokeObjectURL(tsxUrl);
+    
+    // Create a blob for the CSS file
+    const cssBlob = new Blob([cssCode], { type: 'text/css' });
+    const cssUrl = URL.createObjectURL(cssBlob);
+    const cssLink = document.createElement('a');
+    cssLink.href = cssUrl;
+    cssLink.download = `${componentNameToUse}.css`;
+    document.body.appendChild(cssLink);
+    cssLink.click();
+    document.body.removeChild(cssLink);
+    URL.revokeObjectURL(cssUrl);
+
     toast({
-      title: 'Code Copied!',
-      description: 'TSX and CSS have been copied to your clipboard.',
+      title: 'Download Started',
+      description: `Downloading ${componentNameToUse}.tsx and ${componentNameToUse}.css`,
     });
   };
+
+  React.useEffect(() => {
+    setIframeKey(Date.now());
+  }, [tsxCode, cssCode]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -107,7 +153,7 @@ export default function PreviewPanel({ tsxCode, cssCode }: PreviewPanelProps) {
             <Copy className="h-4 w-4 mr-2" />
             Copy Code
           </Button>
-          <Button size="sm" disabled>
+          <Button size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>

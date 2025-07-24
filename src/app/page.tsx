@@ -11,11 +11,23 @@ import SessionSidebar from '@/components/app/session-sidebar';
 import ChatPanel from '@/components/app/chat-panel';
 import PreviewPanel from '@/components/app/preview-panel';
 import CodePanel from '@/components/app/code-panel';
-import { type ChatCompletionMessage } from 'openai/resources/chat';
+import {
+  generateComponentCode,
+  type GenerateComponentCodeOutput,
+} from '@/ai/flows/generate-component-code';
+import {
+  refineComponentCode,
+} from '@/ai/flows/refine-component-code';
+import { useToast } from '@/hooks/use-toast';
 
 export type GeneratedCode = {
-  tsx: string;
+  jsx: string;
   css: string;
+};
+
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
 };
 
 const initialCode: GeneratedCode = {
@@ -105,67 +117,69 @@ export default WelcomePlaceholder;
 `,
 };
 
-const mockApiResponse: GeneratedCode = {
-  tsx: `import React from 'react';
-
-const FancyButton = () => {
-  return (
-    <button className="fancy-button">
-      Click Me!
-    </button>
-  );
-};
-
-export default FancyButton;
-`,
-  css: `
-.fancy-button {
-  background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)));
-  color: hsl(var(--primary-foreground));
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 10px 20px -10px hsl(var(--primary) / 0.5);
-  transition: all 0.3s ease;
-  font-family: 'Inter', sans-serif;
-}
-
-.fancy-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 28px -12px hsl(var(--primary) / 0.4);
-}
-`,
-};
-
 export default function Home() {
-  const [chatHistory, setChatHistory] = React.useState<ChatCompletionMessage[]>(
-    []
-  );
+  const [chatHistory, setChatHistory] = React.useState<ChatMessage[]>([]);
   const [generatedCode, setGeneratedCode] =
     React.useState<GeneratedCode>(initialCode);
   const [isLoading, setIsLoading] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleNewSession = () => {
+    setChatHistory([]);
+    setGeneratedCode(initialCode);
+    toast({
+      title: 'New Session Started',
+      description: 'You can now start generating a new component.',
+    });
+  }
 
   const handleSendMessage = async (message: string) => {
     const newHistory = [...chatHistory, { role: 'user', content: message }];
-    setChatHistory(newHistory as any);
+    setChatHistory(newHistory);
     setIsLoading(true);
 
-    // Mock AI response
-    setTimeout(() => {
-      setGeneratedCode(mockApiResponse);
-      setChatHistory(prev => [...prev, { role: 'assistant', content: "Here is the component you requested."}] as any)
+    try {
+      let response: GenerateComponentCodeOutput;
+      if (chatHistory.length === 0) {
+        // First message, generate new component
+        const result = await generateComponentCode({ prompt: message });
+        response = {
+            jsxTsxCode: result.jsxTsxCode,
+            cssCode: result.cssCode,
+        };
+      } else {
+        // Subsequent message, refine existing component
+        const result = await refineComponentCode({
+          existingCode: generatedCode.tsx,
+          refinementPrompt: message,
+        });
+        response = {
+            jsxTsxCode: result.refinedCode,
+            cssCode: generatedCode.css, // For now, CSS is not refined.
+        }
+      }
+
+      setGeneratedCode({ tsx: response.jsxTsxCode, css: response.cssCode });
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "Here is the component you requested."}])
+    } catch (error) {
+      console.error('AI Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Generating Code',
+        description: 'Something went wrong. Please try again.',
+      });
+      // remove the user message from history if it failed
+      setChatHistory(chatHistory);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-background">
         <Sidebar>
-          <SessionSidebar />
+          <SessionSidebar onNewSession={handleNewSession} />
         </Sidebar>
 
         <SidebarInset className="flex-1 !m-0 !rounded-none !shadow-none">
@@ -192,7 +206,7 @@ export default function Home() {
             </div>
             <aside className="w-[380px] h-full border-l">
               <ChatPanel
-                chatHistory={chatHistory}
+                chatHistory={chatHistory as any}
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
               />

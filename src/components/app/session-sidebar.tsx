@@ -22,7 +22,11 @@ const sessions = [
   { id: 3, name: 'Login Form' },
 ];
 
-export default function SessionSidebar() {
+interface SessionSidebarProps {
+  onNewSession: () => void;
+}
+
+export default function SessionSidebar({ onNewSession }: SessionSidebarProps) {
   return (
     <>
       <SidebarHeader>
@@ -41,7 +45,7 @@ export default function SessionSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <Button className="w-full">
+          <Button className="w-full" onClick={onNewSession}>
             <Plus className="mr-2" />
             New Session
           </Button>
