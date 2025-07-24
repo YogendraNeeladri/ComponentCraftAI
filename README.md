@@ -95,8 +95,8 @@ A stateful, AI-driven micro-frontend playground where users can generate, previe
        v
   <iframe Sandbox>
   Renders micro-frontend securely
-git clone 
-cd
+git clone https://github.com/YogendraNeeladri/ComponentCraftAI.git
+cd ComponentCraftAI
 npm install
 # or
 yarn install
